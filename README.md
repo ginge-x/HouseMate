@@ -10,5 +10,5 @@ pip install -r requirements.txt
 python run.py
 
 ## Run frontend
-cd frontend/housemate-frontend
+cd housemate-frontend
 ng serve
