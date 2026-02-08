@@ -1,0 +1,10 @@
+#python
+.venv/
+__pycache__/
+.env
+*.pyc
+
+#node
+**/node_modules/
+**/dist/
+**/.angular/
