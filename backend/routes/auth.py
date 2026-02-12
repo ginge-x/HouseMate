@@ -3,7 +3,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from app.extensions import mongo
 from utils.security import hash_password, verify_password
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__, url_prefix="/auth")
 
 @auth_bp.post("/register")
 def register():
