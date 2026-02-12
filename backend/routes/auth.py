@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.extensions import mongo
 from utils.security import hash_password, verify_password
@@ -40,16 +40,20 @@ def login():
         return {"error" : "invalid credentials"}, 401
     
     token = create_access_token(identity=str(user["_id"]))
-    return {"access_token" : token}, 200
+    return jsonify({"access_token" : token}), 200
 
 @auth_bp.get("/me")
 @jwt_required()
 def me():
     user_id = get_jwt_identity()
-    user = mongo.db.users.find_one({"_id": _to_object_id(user_id)}, {"password_hash" : 0})
+    user = mongo.db.users.find_one({"_id": _to_object_id(user_id)}, {"password_hash": 0})
     if not user:
-        return {"error" : "user not found"}, 404
+        return {"error": "user not found"}, 404
+    
     user["_id"] = str(user["_id"])
+    if user.get("household_id"):
+        user["household_id"] = str(user["household_id"])
+
     return user, 200
 
 def _to_object_id(value: str):
