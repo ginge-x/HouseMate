@@ -1,0 +1,246 @@
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-zinc-800">My Household</h1>
+
+    <button
+      (click)="logout()"
+      class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+    >
+      Logout
+    </button>
+  </div>
+
+  <div class="mt-6">
+    <p *ngIf="loading" class="text-zinc-500">Loading...</p>
+    <p *ngIf="error" class="text-zinc-800">{{ error }}</p>
+
+    <!-- In household -->
+    <div
+      *ngIf="!loading && !error && household"
+      class="mt-4 rounded-md border border-zinc-200 bg-white p-6"
+    >
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-semibold text-zinc-800">{{ household.name }}</h2>
+          <p class="mt-1 text-sm text-zinc-500">ID: {{ household.household_id }}</p>
+
+          <div *ngIf="me" class="mt-3 text-sm text-zinc-800">
+            You: <span class="font-medium">{{ me.email }}</span>
+            <span
+              class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+              [class.bg-emerald-100]="isAdmin"
+              [class.text-emerald-800]="isAdmin"
+              [class.bg-white]="!isAdmin"
+              [class.text-zinc-800]="!isAdmin"
+            >
+              {{ isAdmin ? 'admin' : 'member' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button
+            (click)="refreshMembers()"
+            class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+          >
+            Refresh
+          </button>
+
+          <button
+            (click)="leaveHousehold()"
+            [disabled]="leaving"
+            class="rounded-md bg-zinc-800 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-60"
+          >
+            {{ leaving ? 'Leaving...' : 'Leave' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Invite code -->
+      <div *ngIf="household.invite_code" class="mt-6">
+        <p class="text-sm font-medium text-zinc-800">Invite code</p>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <div
+            class="inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-800"
+          >
+            {{ household.invite_code }}
+          </div>
+
+          <button
+            (click)="copyInviteCode()"
+            class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+          >
+            Copy
+          </button>
+
+          <button
+            *ngIf="isAdmin"
+            (click)="rotateInviteCode()"
+            [disabled]="rotatingInvite"
+            class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:opacity-60"
+          >
+            {{ rotatingInvite ? 'Rotating...' : 'Rotate' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Members -->
+      <div class="mt-6">
+        <div class="flex items-center justify-between">
+          <p class="text-sm font-medium text-zinc-800">Members</p>
+          <span class="text-sm text-zinc-500">{{ members.length }}</span>
+        </div>
+
+        <p *ngIf="membersLoading" class="mt-2 text-sm text-zinc-500">Loading members...</p>
+        <p *ngIf="membersError" class="mt-2 text-sm text-zinc-800">{{ membersError }}</p>
+
+        <div
+          *ngIf="!membersLoading && members.length"
+          class="mt-3 overflow-hidden rounded-md border border-zinc-200"
+        >
+          <table class="w-full text-left text-sm">
+            <thead class="bg-white text-zinc-800">
+              <tr>
+                <th class="px-4 py-3 font-medium">Email</th>
+                <th class="px-4 py-3 font-medium">Role</th>
+                <th *ngIf="isAdmin" class="px-4 py-3 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-200 bg-white">
+              <tr *ngFor="let m of members">
+                <td class="px-4 py-3 text-zinc-800">
+                  {{ m.email }}
+                  <span *ngIf="me && m.user_id === me._id" class="ml-2 text-xs text-zinc-500"
+                    >(you)</span
+                  >
+                </td>
+
+                <td class="px-4 py-3">
+                  <span
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                    [class.bg-emerald-100]="m.role === 'admin'"
+                    [class.text-emerald-800]="m.role === 'admin'"
+                    [class.bg-white]="m.role !== 'admin'"
+                    [class.text-zinc-800]="m.role !== 'admin'"
+                  >
+                    {{ m.role }}
+                  </span>
+                </td>
+
+                <td *ngIf="isAdmin" class="px-4 py-3">
+                  <div class="flex justify-end gap-2">
+                    <button
+                      *ngIf="m.role !== 'admin'"
+                      (click)="setRole(m, 'admin')"
+                      [disabled]="updatingRoleFor === m.user_id"
+                      class="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:opacity-60"
+                    >
+                      {{ updatingRoleFor === m.user_id ? '...' : 'Promote' }}
+                    </button>
+
+                    <button
+                      *ngIf="m.role === 'admin'"
+                      (click)="setRole(m, 'member')"
+                      [disabled]="updatingRoleFor === m.user_id"
+                      class="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:opacity-60"
+                    >
+                      {{ updatingRoleFor === m.user_id ? '...' : 'Demote' }}
+                    </button>
+
+                    <button
+                      (click)="removeMember(m)"
+                      [disabled]="removingMemberId === m.user_id || (me && m.user_id === me._id)"
+                      class="rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-zinc-600 disabled:opacity-60"
+                    >
+                      {{ removingMemberId === m.user_id ? 'Removing...' : 'Remove' }}
+                    </button>
+                  </div>
+
+                  <p
+                    *ngIf="me && m.user_id === me._id"
+                    class="mt-1 text-right text-xs text-zinc-500"
+                  >
+                    (You can’t remove yourself — use Leave)
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p *ngIf="!membersLoading && !members.length" class="mt-2 text-sm text-zinc-500">
+          No members found.
+        </p>
+      </div>
+    </div>
+
+    <!-- Not in household -->
+    <div *ngIf="!error && !household" class="mt-4 rounded-md border border-zinc-200 bg-white p-6">
+      <h2 class="text-lg font-semibold text-zinc-800">You are not in a household yet</h2>
+      <p class="mt-2 text-sm text-zinc-800">
+        Create one or join with an invite code.
+        <span *ngIf="loading">Checking your current household in the background...</span>
+      </p>
+
+      <div class="mt-6 grid gap-4 md:grid-cols-2">
+        <form
+          [formGroup]="createForm"
+          (ngSubmit)="createHousehold()"
+          class="rounded-md border border-zinc-200 bg-white p-4"
+        >
+          <h3 class="font-medium text-zinc-800">Create Household</h3>
+          <label class="mt-3 block text-sm font-medium text-zinc-800">Household Name</label>
+          <input
+            formControlName="name"
+            type="text"
+            placeholder="e.g. The Smith Home"
+            class="mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-700 focus:border-zinc-200"
+          />
+          <p
+            *ngIf="createNameControl.touched && createNameControl.invalid"
+            class="mt-1 text-xs text-zinc-800"
+          >
+            Household name is required (minimum 2 characters).
+          </p>
+          <button
+            type="submit"
+            [disabled]="creating || createForm.invalid"
+            class="mt-4 w-full rounded-md bg-zinc-800 text-white px-3 py-2 text-sm font-semibold hover:bg-zinc-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {{ creating ? 'Creating...' : 'Create' }}
+          </button>
+        </form>
+
+        <form
+          [formGroup]="joinForm"
+          (ngSubmit)="joinHousehold()"
+          class="rounded-md border border-zinc-200 bg-white p-4"
+        >
+          <h3 class="font-medium text-zinc-800">Join Household</h3>
+          <label class="mt-3 block text-sm font-medium text-zinc-800">Invite Code</label>
+          <input
+            formControlName="inviteCode"
+            type="text"
+            placeholder="ABC123"
+            class="mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono uppercase tracking-wide text-sm text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-700 focus:border-zinc-200"
+          />
+          <p
+            *ngIf="joinInviteCodeControl.touched && joinInviteCodeControl.invalid"
+            class="mt-1 text-xs text-zinc-800"
+          >
+            Invite code is required.
+          </p>
+          <button
+            type="submit"
+            [disabled]="joining || joinForm.invalid"
+            class="mt-4 w-full rounded-md bg-zinc-800 text-white px-3 py-2 text-sm font-semibold hover:bg-zinc-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {{ joining ? 'Joining...' : 'Join' }}
+          </button>
+        </form>
+      </div>
+
+      <p *ngIf="setupError" class="mt-4 text-sm text-zinc-800">{{ setupError }}</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,124 @@
+<div class="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+  <div class="flex items-center justify-between">
+    <button
+      (click)="backToBills()"
+      class="px-3 py-2 rounded-md border border-zinc-300 bg-white text-sm text-zinc-800 hover:bg-zinc-100"
+    >
+      Back to bills
+    </button>
+    <a routerLink="/bills" class="text-sm font-medium text-zinc-800 hover:underline">
+      Bills list
+    </a>
+  </div>
+
+  <div
+    *ngIf="error"
+    class="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm"
+  >
+    {{ error }}
+  </div>
+
+  <div
+    *ngIf="loading"
+    class="rounded-md border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800"
+  >
+    Loading bill...
+  </div>
+
+  <div
+    *ngIf="!loading && bill"
+    class="rounded-md border border-zinc-200 bg-white p-4 sm:p-6 space-y-4"
+  >
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-semibold text-zinc-800">{{ bill.title }}</h1>
+        <p class="text-sm text-zinc-500">Bill ID: {{ bill.bill_id }}</p>
+      </div>
+
+      <span
+        class="inline-flex items-center px-2 py-1 rounded-full text-xs border self-start"
+        [ngClass]="
+          bill.status === 'paid'
+            ? 'border-green-200 bg-green-50 text-green-700'
+            : 'border-red-200 bg-red-50 text-red-700'
+        "
+      >
+        {{ bill.status }}
+      </span>
+      <span
+        *ngIf="bill.archived"
+        class="inline-flex items-center px-2 py-1 rounded-full text-xs border self-start border-amber-200 bg-amber-50 text-amber-700"
+      >
+        archived
+      </span>
+    </div>
+
+    <div class="text-sm text-zinc-800 flex flex-wrap gap-x-4 gap-y-1">
+      <span>Total: {{ money(bill.amount) }}</span>
+      <span *ngIf="bill.due_date">Due: {{ bill.due_date }}</span>
+      <span>Your share: {{ money(bill.your_share) }}</span>
+      <span>Outstanding: {{ money(outstandingAmount(bill)) }}</span>
+      <span>{{ paidCount(bill) }}/{{ bill.splits.length }} paid</span>
+      <span *ngIf="bill.you_paid" class="text-green-700 font-medium">You have paid</span>
+      <span *ngIf="bill.you_paid === false" class="text-red-700 font-medium">You are unpaid</span>
+      <span>Split: {{ bill.split_type || 'equal' }}</span>
+    </div>
+
+    <div class="rounded-md border border-zinc-200 bg-white p-3">
+      <div class="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">
+        Who owes what
+      </div>
+      <div class="space-y-2">
+        <div *ngFor="let split of bill.splits" class="flex items-center justify-between text-sm">
+          <div class="text-zinc-800">{{ splitLabel(split) }}</div>
+          <div class="flex items-center gap-2">
+            <span class="font-medium text-zinc-800">{{ money(split.amount_owed) }}</span>
+            <span
+              class="inline-flex items-center px-2 py-0.5 rounded-full text-xs border"
+              [ngClass]="
+                split.paid
+                  ? 'border-green-200 bg-green-50 text-green-700'
+                  : 'border-red-200 bg-red-50 text-red-700'
+              "
+            >
+              {{ split.paid ? 'Paid' : 'Unpaid' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          class="px-3 py-2 rounded-md border text-sm disabled:opacity-60"
+          [ngClass]="
+            bill.you_paid
+              ? 'border-red-300 bg-white text-red-700 hover:bg-red-50'
+              : 'border-green-300 bg-white text-green-700 hover:bg-green-50'
+          "
+          (click)="togglePaid()"
+          [disabled]="bill.you_paid === null || updating || !!bill.archived"
+        >
+          {{
+            updating ? 'Updating...' : bill.you_paid ? 'Mark my share unpaid' : 'Mark my share paid'
+          }}
+        </button>
+        <button
+          class="px-3 py-2 rounded-md border border-amber-300 bg-white text-sm text-amber-700 hover:bg-amber-50 disabled:opacity-60"
+          (click)="toggleArchive()"
+          [disabled]="updating || (!bill.archived && !canArchive(bill))"
+        >
+          {{ updating ? 'Updating...' : bill.archived ? 'Unarchive' : 'Archive' }}
+        </button>
+        <button
+          class="px-3 py-2 rounded-md border border-red-300 bg-white text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
+          (click)="deleteBill()"
+          [disabled]="updating || !canDelete(bill)"
+        >
+          {{ updating ? 'Updating...' : 'Delete bill' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

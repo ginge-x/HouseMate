@@ -1,0 +1,55 @@
+<div class="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-zinc-800">Reminders</h1>
+    <button
+      class="px-3 py-2 rounded-md border border-zinc-300 bg-white text-sm text-zinc-800 hover:bg-zinc-100"
+      (click)="refresh()"
+      [disabled]="loading"
+    >
+      Refresh
+    </button>
+  </div>
+
+  <div
+    *ngIf="error"
+    class="rounded-md border border-zinc-200 bg-white text-zinc-800 px-4 py-3 text-sm"
+  >
+    {{ error }}
+  </div>
+
+  <div *ngIf="loading" class="text-sm text-zinc-500">Loading…</div>
+
+  <div *ngIf="!loading && data" class="space-y-6">
+    <div class="rounded-md border border-zinc-200 bg-white p-4">
+      <div class="text-sm font-semibold text-zinc-800 mb-2">Bills</div>
+      <div *ngIf="data.bills.length === 0" class="text-sm text-zinc-500">No bill reminders</div>
+
+      <div *ngFor="let b of data.bills" class="py-2 border-b last:border-b-0 text-sm">
+        <div class="flex items-center justify-between">
+          <div class="text-zinc-800 font-medium">{{ b.title }}</div>
+          <div class="text-zinc-800">due {{ b.due_date }}</div>
+        </div>
+        <div class="text-zinc-800">
+          {{ b.is_overdue ? 'Overdue' : 'Due in ' + b.days_until_due + ' day(s)' }}
+          • remind {{ b.reminder_days_before }} day(s) before
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-md border border-zinc-200 bg-white p-4">
+      <div class="text-sm font-semibold text-zinc-800 mb-2">Chores</div>
+      <div *ngIf="data.chores.length === 0" class="text-sm text-zinc-500">No chore reminders</div>
+
+      <div *ngFor="let c of data.chores" class="py-2 border-b last:border-b-0 text-sm">
+        <div class="flex items-center justify-between">
+          <div class="text-zinc-800 font-medium">{{ c.title }}</div>
+          <div class="text-zinc-800">due {{ c.due_date }}</div>
+        </div>
+        <div class="text-zinc-800">
+          {{ c.is_overdue ? 'Overdue' : 'Due in ' + c.days_until_due + ' day(s)' }}
+          • remind {{ c.reminder_days_before }} day(s) before
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,73 @@
+<div class="min-h-screen bg-zinc-100 text-zinc-900">
+  <nav *ngIf="isLoggedIn && !onAuthPage" class="border-b border-zinc-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <div class="flex items-center gap-2 text-zinc-800">
+        <a
+          routerLink="/dashboard"
+          routerLinkActive="bg-zinc-800 text-white"
+          class="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-100"
+        >
+          Dashboard
+        </a>
+        <a
+          routerLink="/bills"
+          routerLinkActive="bg-zinc-800 text-white"
+          class="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-100"
+        >
+          Bills
+        </a>
+        <a
+          routerLink="/chores"
+          routerLinkActive="bg-zinc-800 text-white"
+          class="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-100"
+        >
+          Chores
+        </a>
+        <a
+          routerLink="/requests"
+          routerLinkActive="bg-zinc-800 text-white"
+          class="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-100"
+        >
+          Requests
+        </a>
+        <a
+          routerLink="/chat"
+          routerLinkActive="bg-zinc-800 text-white"
+          class="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-100"
+        >
+          Chat
+        </a>
+        <a
+          routerLink="/reminders"
+          routerLinkActive="bg-zinc-800 text-white"
+          class="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-100"
+        >
+          Reminders
+        </a>
+        <a
+          routerLink="/analytics"
+          routerLinkActive="bg-zinc-800 text-white"
+          class="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-100"
+        >
+          Analytics
+        </a>
+        <a
+          routerLink="/household"
+          routerLinkActive="bg-zinc-800 text-white"
+          class="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-100"
+        >
+          Household
+        </a>
+      </div>
+
+      <button
+        (click)="logout()"
+        class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 hover:bg-zinc-100"
+      >
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <router-outlet />
+</div>

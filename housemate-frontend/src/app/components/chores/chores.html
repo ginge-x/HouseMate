@@ -1,0 +1,250 @@
+<div class="max-w-6xl mx-auto p-4 sm:p-6 space-y-4">
+  <h1 class="text-xl font-semibold text-zinc-800">Chore rota</h1>
+
+  <div
+    *ngIf="error"
+    class="rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm"
+  >
+    {{ error }}
+  </div>
+
+  <div class="rounded-md border border-zinc-200 bg-white p-4 space-y-3">
+    <div class="flex flex-wrap items-end gap-3">
+      <label class="block">
+        <span class="text-xs text-zinc-500">View</span>
+        <select
+          class="mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-700"
+          [(ngModel)]="viewFilter"
+        >
+          <option value="all">All chores</option>
+          <option value="open">Not done</option>
+          <option value="completed">Done</option>
+        </select>
+      </label>
+
+      <label class="block">
+        <span class="text-xs text-zinc-500">Assigned to</span>
+        <select
+          class="mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-700"
+          [(ngModel)]="assignedFilter"
+        >
+          <option value="all">Any</option>
+          <option value="auto">Auto</option>
+          <option *ngFor="let m of members" [value]="m.user_id">{{ m.email }}</option>
+        </select>
+      </label>
+
+      <label class="inline-flex items-center gap-2 text-sm text-zinc-800">
+        <input
+          type="checkbox"
+          class="rounded border-zinc-300 text-zinc-800 focus:ring-zinc-700"
+          [ngModel]="includeArchived"
+          (ngModelChange)="toggleIncludeArchived($event)"
+        />
+        Include archived
+      </label>
+
+      <button
+        class="ml-auto px-3 py-2 rounded-md border border-zinc-300 bg-white text-sm text-zinc-800 hover:bg-zinc-100 disabled:opacity-60"
+        (click)="refresh()"
+        [disabled]="loading"
+      >
+        Refresh
+      </button>
+    </div>
+
+    <div *ngIf="loading" class="text-sm text-zinc-500">Loading...</div>
+
+    <div *ngIf="!loading && visibleChores.length === 0" class="text-sm text-zinc-500">
+      No chores in this view.
+    </div>
+
+    <div *ngIf="!loading && visibleChores.length > 0" class="overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="bg-white text-left text-zinc-800 border-b border-zinc-200">
+            <th class="py-2 px-3 font-medium">Chore</th>
+            <th class="py-2 px-3 font-medium">Assigned to</th>
+            <th class="py-2 px-3 font-medium">Frequency</th>
+            <th class="py-2 px-3 font-medium">Next due</th>
+            <th class="py-2 px-3 font-medium">Status</th>
+            <th class="py-2 px-3 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let chore of visibleChores; trackBy: trackById"
+            class="border-b border-zinc-200"
+          >
+            <td class="py-2 px-3 text-zinc-800">{{ chore.title }}</td>
+            <td class="py-2 px-3 text-zinc-800">{{ memberLabel(chore.assigned_to) }}</td>
+            <td class="py-2 px-3 text-zinc-800">{{ frequencyLabel(chore) }}</td>
+            <td class="py-2 px-3 text-zinc-800">{{ chore.due_date || '-' }}</td>
+            <td class="py-2 px-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  class="px-2 py-1 rounded border text-xs disabled:opacity-60"
+                  [ngClass]="
+                    chore.completed
+                      ? 'border-green-300 bg-green-50 text-green-700'
+                      : 'border-red-300 bg-red-50 text-red-700'
+                  "
+                  (click)="toggleComplete(chore)"
+                  [disabled]="!!chore.archived || updatingChoreIds.has(chore.chore_id)"
+                >
+                  {{ statusLabel(chore) }}
+                </button>
+                <span
+                  *ngIf="chore.archived"
+                  class="px-2 py-0.5 rounded border text-[11px] border-amber-200 bg-amber-50 text-amber-700"
+                >
+                  Archived
+                </span>
+              </div>
+            </td>
+            <td class="py-2 px-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  class="px-2 py-1 rounded border text-xs border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-60"
+                  (click)="toggleArchive(chore)"
+                  [disabled]="
+                    (!chore.archived && !canArchive(chore)) || updatingChoreIds.has(chore.chore_id)
+                  "
+                >
+                  {{ chore.archived ? 'Unarchive' : 'Archive' }}
+                </button>
+                <button
+                  class="px-2 py-1 rounded border text-xs border-red-300 bg-white text-red-700 hover:bg-red-50 disabled:opacity-60"
+                  (click)="deleteChore(chore)"
+                  [disabled]="!canDelete(chore) || updatingChoreIds.has(chore.chore_id)"
+                >
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pt-1">
+      <button
+        class="px-3 py-1.5 rounded-md border border-zinc-300 bg-white text-sm text-zinc-800 hover:bg-zinc-200"
+        (click)="toggleCreateForm()"
+      >
+        {{ showCreateForm ? 'Close' : 'Add chore' }}
+      </button>
+    </div>
+
+    <div *ngIf="showCreateForm" class="rounded-md border border-zinc-200 bg-white p-3 space-y-3">
+      <div
+        *ngIf="createError"
+        class="rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm"
+      >
+        {{ createError }}
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <label class="block">
+          <span class="text-xs text-zinc-500">Chore</span>
+          <input
+            class="mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
+            [(ngModel)]="title"
+            placeholder="e.g. Hoover hallway"
+          />
+        </label>
+
+        <label class="block">
+          <span class="text-xs text-zinc-500">Assigned to</span>
+          <select
+            class="mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
+            [(ngModel)]="assigned_to"
+          >
+            <option value="auto">Auto</option>
+            <option *ngFor="let m of members" [value]="m.user_id">{{ m.email }}</option>
+          </select>
+        </label>
+
+        <label class="block">
+          <span class="text-xs text-zinc-500">
+            Next due
+            <span *ngIf="recurrenceMode !== 'none'" class="text-[11px] text-zinc-800"
+              >(required for recurring)</span
+            >
+          </span>
+          <input
+            class="mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
+            type="date"
+            [(ngModel)]="due_date"
+          />
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <label class="block">
+          <span class="text-xs text-zinc-500">Recurrence</span>
+          <select
+            class="mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
+            [(ngModel)]="recurrenceMode"
+            (ngModelChange)="onRecurrenceChange($event)"
+          >
+            <option value="none">None (one-off)</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Every 2 weeks</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </label>
+
+        <label
+          class="block"
+          *ngIf="
+            recurrenceMode === 'daily' ||
+            recurrenceMode === 'weekly' ||
+            recurrenceMode === 'monthly'
+          "
+        >
+          <span class="text-xs text-zinc-500">Every</span>
+          <div class="mt-1 flex items-center gap-2">
+            <input
+              class="w-24 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
+              type="number"
+              min="1"
+              step="1"
+              [(ngModel)]="recurrenceInterval"
+            />
+            <span class="text-sm text-zinc-800">{{ recurrenceUnitLabel() }}</span>
+          </div>
+        </label>
+
+        <label class="block">
+          <span class="text-xs text-zinc-500">Remind (days before due)</span>
+          <input
+            class="mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
+            type="number"
+            min="0"
+            max="60"
+            step="1"
+            [(ngModel)]="reminderDaysBefore"
+          />
+        </label>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          class="px-3 py-1.5 rounded-md border border-zinc-700 bg-zinc-800 text-sm text-white hover:bg-zinc-700 disabled:opacity-60"
+          (click)="createChore()"
+          [disabled]="creating"
+        >
+          {{ creating ? 'Saving...' : 'Save chore' }}
+        </button>
+        <button
+          class="px-3 py-1.5 rounded-md border border-zinc-300 bg-white text-sm text-zinc-800 hover:bg-zinc-100"
+          (click)="cancelCreate()"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
